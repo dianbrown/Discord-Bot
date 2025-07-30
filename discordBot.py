@@ -6,6 +6,27 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+# ───── keep-alive server ─────────────────────────────
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    # Replit sets $PORT automatically; default to 8000 if missing
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
+# ─────────────────────────────────────────────────────
+
 # 1) Load .env
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 TOKEN    = os.getenv("BOT_TOKEN")
@@ -21,9 +42,9 @@ class MuteBot(commands.Bot):
         intents = discord.Intents.default()
         intents.members = True
         super().__init__(
-            command_prefix="!", 
+            command_prefix="!",
             intents=intents,
-            application_id=int(os.getenv("APPLICATION_ID", 0)),  # optional but recommended
+            application_id=int(os.getenv("APPLICATION_ID", 0)),
         )
 
     async def setup_hook(self):
@@ -91,6 +112,8 @@ class VoiceMute(commands.Cog):
             reply += f"\n⚠️ Failed: {', '.join(failed)}"
         await interaction.response.send_message(reply, ephemeral=True)
 
-# 4) Run it
-bot = MuteBot()
-bot.run(TOKEN)
+# ─────── start everything ─────────────────────────────
+if __name__ == "__main__":
+    keep_alive()                    # start the web server
+    bot = MuteBot()
+    bot.run(TOKEN)
